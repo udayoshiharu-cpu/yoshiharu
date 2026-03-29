@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アパート経営 CF・返済比率シミュレーター</title>
+    <style>
+        /* 全体のベースデザイン（シンプルで温かみのあるトーン） */
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #f5f3ef; /* 落ち着いたオフホワイト */
+            color: #4a4641; /* 墨色に近いグレー */
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            color: #3b3732;
+            border-bottom: 2px solid #e0dcd3;
+            padding-bottom: 10px;
+        }
+
+        /* 入力フォームのスタイル */
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group label {
+            font-size: 0.95rem;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            flex: 0.6;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: right;
+            background-color: #faf9f7;
+            transition: border-color 0.3s;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #8c7f70; /* アクセントカラー */
+            background-color: #fff;
+        }
+
+        .input-wrapper span {
+            margin-left: 10px;
+            font-size: 0.9rem;
+            color: #666;
+            width: 20px;
+        }
+
+        /* 計算ボタン */
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #8c7f70; /* 温かみのあるアースカラー */
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #73675a;
+        }
+
+        /* 結果表示エリア */
+        .result-box {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fcfbf9;
+            border: 1px solid #e0dcd3;
+            border-radius: 6px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+            padding-top: 10px;
+            border-top: 1px dashed #ccc;
+        }
+
+        .result-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2c2a27;
+        }
+        
+        .result-value.alert {
+            color: #b05c5c; /* マイナス時の色 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>資金計画シミュレーター</h2>
+
+    <div class="input-group">
+        <label for="yield">物件利回り（表面）</label>
+        <div class="input-wrapper">
+            <input type="number" id="yield" step="0.1" value="8.0">
+            <span>%</span>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="interest">借入金利（年利）</label>
+        <div class="input-wrapper">
+            <input type="number" id="interest" step="0.01" value="1.5">
+            <span>%</span>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="period">返済期間</label>
+        <div class="input-wrapper">
+            <input type="number" id="period" step="1" value="25">
+            <span>年</span>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="expense">経費率（対家賃）</label>
+        <div class="input-wrapper">
+            <input type="number" id="expense" step="1" value="20">
+            <span>%</span>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="vacancy">空室率（対家賃）</label>
+        <div class="input-wrapper">
+            <input type="number" id="vacancy" step="1" value="10">
+            <span>%</span>
+        </div>
+    </div>
+
+    <button onclick="calculate()">計算する</button>
+
+    <div class="result-box">
+        <div class="result-item">
+            <span>年間CF率</span>
+            <span id="cf-rate" class="result-value">- %</span>
+        </div>
+        <div class="result-item">
+            <span>返済比率</span>
+            <span id="repayment-ratio" class="result-value">- %</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculate() {
+        // 入力値の取得
+        const yieldRate = parseFloat(document.getElementById('yield').value) / 100;
+        const interestRate = parseFloat(document.getElementById('interest').value) / 100;
+        const years = parseInt(document.getElementById('period').value);
+        const expenseRate = parseFloat(document.getElementById('expense').value) / 100;
+        const vacancyRate = parseFloat(document.getElementById('vacancy').value) / 100;
+
+        // 計算を一般化するため、物件価格を「1」として計算
+        const propertyPrice = 1;
+
+        // 1. 年間満室想定家賃
+        const annualRent = propertyPrice * yieldRate;
+
+        // 2. 年間経費と空室ロスの絶対額
+        const expenseAmount = annualRent * expenseRate;
+        const vacancyAmount = annualRent * vacancyRate;
+
+        // 3. 年間返済総額（フルローン＝物件価格の100%借入と仮定）
+        const monthlyInterest = interestRate / 12;
+        const totalMonths = years * 12;
+        let annualDebtService = 0;
+
+        if (interestRate > 0) {
+            // 元利均等返済の公式（PMT関数と同等）
+            const monthlyPayment = propertyPrice * (monthlyInterest * Math.pow(1 + monthlyInterest, totalMonths)) / (Math.pow(1 + monthlyInterest, totalMonths) - 1);
+            annualDebtService = monthlyPayment * 12;
+        } else {
+            // 金利0%の場合
+            annualDebtService = propertyPrice / years;
+        }
+
+        // 4. 年間CF率の計算
+        // 【（年間家賃収入 − 経費額 − 空室ロス額 − 年間返済総額） / 物件価格】
+        const cashFlow = annualRent - expenseAmount - vacancyAmount - annualDebtService;
+        const cfRateResult = (cashFlow / propertyPrice) * 100;
+
+        // 5. 返済比率の計算（年間返済総額 / 年間満室想定家賃）
+        const repaymentRatioResult = (annualDebtService / annualRent) * 100;
+
+        // 画面への表示と、マイナス時の色変え
+        const cfElement = document.getElementById('cf-rate');
+        cfElement.textContent = cfRateResult.toFixed(2) + ' %';
+        if (cfRateResult < 0) {
+            cfElement.classList.add('alert');
+        } else {
+            cfElement.classList.remove('alert');
+        }
+
+        document.getElementById('repayment-ratio').textContent = repaymentRatioResult.toFixed(2) + ' %';
+    }
+
+    // 初回読み込み時に1度計算を実行しておく
+    window.onload = calculate;
+</script>
+
+</body>
+</html>
